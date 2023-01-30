@@ -3,34 +3,80 @@ using UnityEngine.SceneManagement;
 
 public class CollisionHandler : MonoBehaviour
 {
-    
+    [SerializeField] float levelLoadDelay = 1f;
+    [SerializeField] AudioClip crash;
+    [SerializeField] AudioClip success;
+
+    [SerializeField] ParticleSystem crashParticles;
+    [SerializeField] ParticleSystem successParticles;
+
+    AudioSource audioSource;
+
+    bool isTransitioning = false;
+    bool collisionDisabled = false;
+
     void Start()
     {
-        
+        audioSource = GetComponent<AudioSource>();
     }
 
     void Update()
     {
-        
+        RepondToDebugKeys();
+    }
+
+    void RepondToDebugKeys()
+    {
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            LoadNextLevel();
+        }
+
+        else if (Input.GetKeyDown(KeyCode.C))
+        {
+            collisionDisabled = !collisionDisabled;       // Toggle Collision
+        }
     }
 
     void OnCollisionEnter(Collision collision)
     {
+        if (isTransitioning || collisionDisabled) { return; }
+
         switch (collision.gameObject.tag)
         {
             case "Friendly":
                 Debug.Log("Friendly");
                 break;
             case "Finish":
-                LoadNextLevel();
+                StartSuccessSequence();
                 break;
             case "Fuel":
                 Debug.Log("Fuel");
                 break;
             default:
-                ReloadLevel();
+                StartCrashLevel();
                 break;
         }
+    }
+
+    void StartSuccessSequence()
+    {
+        isTransitioning = true;
+        audioSource.Stop();
+        audioSource.PlayOneShot(success);
+        successParticles.Play();
+        GetComponent<Movement>().enabled = false;
+        Invoke("LoadNextLevel", levelLoadDelay);
+    }
+
+    void StartCrashLevel()
+    {
+        isTransitioning = true;
+        audioSource.Stop();
+        audioSource.PlayOneShot(crash);
+        crashParticles.Play();
+        GetComponent<Movement>().enabled = false;
+        Invoke("ReloadLevel", levelLoadDelay);
     }
 
     void LoadNextLevel()
